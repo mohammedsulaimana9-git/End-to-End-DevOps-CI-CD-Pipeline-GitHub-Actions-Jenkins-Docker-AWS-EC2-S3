@@ -19,7 +19,7 @@ jobs:
 
       - name: Run basic test
         run: |
-          python -m py_compile app.py 2>&1 | tee -a pipeline1.log
+          python -m py_compile app.py 2>&1 | tee -a pipeline1.log 
 
       - name: Validate Docker build
         run: |
