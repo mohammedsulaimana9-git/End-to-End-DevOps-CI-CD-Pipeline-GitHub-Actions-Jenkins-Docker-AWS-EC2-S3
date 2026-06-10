@@ -75,7 +75,7 @@ pipeline {
                 to: "${env.NOTIFICATION_EMAILS}",
                 subject: "Pipeline 2 Failed - Jenkins Build/Test Error",
                 body: "Pipeline 2 failed. Short error log is attached.",
-                attachmentsPattern: 'short-error-log.txt'
+                attachmentsPattern: 'short-error-log.txt' 
             )
         }
     }
