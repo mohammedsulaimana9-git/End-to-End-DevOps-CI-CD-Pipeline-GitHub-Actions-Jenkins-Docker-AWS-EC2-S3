@@ -43,7 +43,7 @@ pipeline {
         stage('Send Approval Email') {
             steps {
                 emailext(
-                    to: "${env.NOTIFICATION_EMAILS}",
+                    to: NOTIFICATION_EMAILS,
                     subject: "Pipeline 2 Success - Approval Needed for Deployment",
                     mimeType: 'text/html',
                     body: """
@@ -72,7 +72,7 @@ pipeline {
             tail -50 pipeline2.log > short-error-log.txt || true
             '''
             emailext(
-                to: "${env.NOTIFICATION_EMAILS}",
+                to: NOTIFICATION_EMAILS,
                 subject: "Pipeline 2 Failed - Jenkins Build/Test Error",
                 body: "Pipeline 2 failed. Short error log is attached.",
                 attachmentsPattern: 'short-error-log.txt' 
