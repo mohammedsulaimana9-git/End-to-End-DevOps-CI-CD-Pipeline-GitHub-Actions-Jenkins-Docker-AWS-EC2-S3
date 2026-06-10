@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NOTIFICATION_EMAILS = 'mohammedsulaimana9@gmail.com'
+        NOTIFICATION_EMAILS = credentials('PIPELINE_MAIL_TO')
     }
 
     stages {
