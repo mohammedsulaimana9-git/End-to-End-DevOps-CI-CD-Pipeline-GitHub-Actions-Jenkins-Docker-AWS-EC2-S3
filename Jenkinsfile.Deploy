@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Deploy Application') {
+            steps {
+                sh '''
+                echo "Starting deployment..."
+                docker stop myapp || true
+                docker rm myapp || true
+
+                docker run -d -p 5000:5000 --name myapp myapp:latest
+
+                sleep 5
+                curl -f http://localhost:5000/health
+
+                echo "Deployment successful at $(date)" > deployment.log
+                '''
+            }
+        }
+
+        stage('Upload Log to S3') {
+            steps {
+                sh '''
+                aws s3 cp deployment.log s3://YOUR_BUCKET_NAME/deployment-logs/deployment-${BUILD_NUMBER}.log
+                '''
+            }
+        }
+    }
+}

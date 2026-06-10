@@ -14,16 +14,58 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt 2>&1 | tee pipeline1.log
 
       - name: Run basic test
-        run: python -m py_compile app.py
+        run: |
+          python -m py_compile app.py 2>&1 | tee -a pipeline1.log
 
       - name: Validate Docker build
-        run: docker build -t myapp .
+        run: |
+          docker build -t myapp . 2>&1 | tee -a pipeline1.log
 
       - name: Trigger Jenkins Pipeline 2
         if: success()
         run: |
           curl -X POST "${{ secrets.JENKINS_URL }}/job/Pipeline%202%20(Build%20and%20Test)/build" \
           --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_API_TOKEN }}"
+
+      - name: Mail success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: 587
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "Pipeline 1 Success - Jenkins Pipeline 2 Triggered"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.SMTP_USER }}
+          body: |
+            Pipeline 1 GitHub Actions validation completed successfully.
+
+            It checked:
+            - Code checkout
+            - Python dependencies
+            - Python syntax validation
+            - Docker image build
+
+            Jenkins Pipeline 2 has now been triggered and is running.
+
+      - name: Mail failure with log
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: 587
+          username: ${{ secrets.SMTP_USER }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "Pipeline 1 Failed - GitHub Actions Error"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.SMTP_USER }}
+          body: |
+            Pipeline 1 failed.
+
+            Please check the attached GitHub Actions log.
+          attachments: pipeline1.log

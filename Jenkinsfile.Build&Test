@@ -1,0 +1,82 @@
+pipeline {
+    agent any
+
+    environment {
+        NOTIFICATION_EMAILS = 'your-email@example.com'
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                docker build -t myapp:${BUILD_NUMBER} . 2>&1 | tee pipeline2.log
+                docker tag myapp:${BUILD_NUMBER} myapp:latest
+                '''
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                sh '''
+                docker stop myapp || true
+                docker rm myapp || true
+                docker run -d -p 5000:5000 --name myapp myapp:latest 2>&1 | tee -a pipeline2.log
+                sleep 5
+                '''
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                curl -f http://localhost:5000/health 2>&1 | tee -a pipeline2.log
+                '''
+            }
+        }
+
+        stage('Send Approval Email') {
+            steps {
+                emailext(
+                    to: "${env.NOTIFICATION_EMAILS}",
+                    subject: "Pipeline 2 Success - Approval Needed for Deployment",
+                    mimeType: 'text/html',
+                    body: """
+                    <p>Pipeline 2 Jenkins Build and Test completed successfully.</p>
+                    <ul>
+                        <li>Pulled latest code from GitHub</li>
+                        <li>Built Docker image</li>
+                        <li>Ran Docker container locally</li>
+                        <li>Validated /health endpoint</li>
+                    </ul>
+                    <p>Click below to approve and trigger Pipeline 3 deployment:</p>
+                    <br>
+                    <a href="http://13.233.253.245:8080/buildByToken/build?job=Pipeline%203%20%28Deployyy%29&token=deploy-token-123"
+                       style="background-color: #28a745; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">
+                       Approve & Deploy Pipeline 3
+                    </a>
+                    """
+                )
+            }
+        }
+    }
+
+    post {
+        failure {
+            sh '''
+            tail -50 pipeline2.log > short-error-log.txt || true
+            '''
+            emailext(
+                to: "${env.NOTIFICATION_EMAILS}",
+                subject: "Pipeline 2 Failed - Jenkins Build/Test Error",
+                body: "Pipeline 2 failed. Short error log is attached.",
+                attachmentsPattern: 'short-error-log.txt'
+            )
+        }
+    }
+}
