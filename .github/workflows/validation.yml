@@ -1,0 +1,23 @@
+name: GitHub Actions Validation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run basic test
+        run: python -m py_compile app.py
+
+      - name: Validate Docker build
+        run: docker build -t myapp .
