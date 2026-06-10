@@ -1,29 +1,55 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        S3_BUCKET = 'logs-buckettttt'
+    }
+
     stages {
-        stage('Deploy Application') {
+        stage('Start Deployment') {
+            steps {
+                sh 'echo "Starting deployment on Jenkins EC2 instance"'
+            }
+        }
+
+        stage('Stop and Remove Old Container') {
             steps {
                 sh '''
-                echo "Starting deployment..."
                 docker stop myapp || true
                 docker rm myapp || true
-
-                docker run -d -p 5000:5000 --name myapp myapp:latest
-
-                sleep 5
-                curl -f http://localhost:5000/health
-
-                echo "Deployment successful at $(date)" > deployment.log
                 '''
             }
         }
 
-        stage('Upload Log to S3') {
+        stage('Run New Docker Container') {
             steps {
                 sh '''
-                aws s3 cp deployment.log s3://YOUR_BUCKET_NAME/deployment-logs/deployment-${BUILD_NUMBER}.log
+                docker run -d -p 5000:5000 --name myapp myapp:latest
                 '''
+            }
+        }
+
+        stage('Check App on EC2') {
+            steps {
+                sh '''
+                sleep 5
+                curl -f http://localhost:5000/health
+                '''
+            }
+        }
+
+        stage('Upload Deployment Log to S3') {
+            steps {
+                withCredentials([
+                    string(credentialsId: 'aws-access-key-id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'aws-secret-access-key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    sh '''
+                    echo "Deployment successful at $(date)" > deployment.log
+                    aws s3 cp deployment.log s3://${S3_BUCKET}/deployment-logs/deployment-${BUILD_NUMBER}.log --region ${AWS_DEFAULT_REGION}
+                    '''
+                }
             }
         }
     }
