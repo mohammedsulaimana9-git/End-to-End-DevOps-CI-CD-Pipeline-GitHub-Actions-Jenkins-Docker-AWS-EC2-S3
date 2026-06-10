@@ -40,6 +40,12 @@ pipeline {
             }
         }
 
+        stage('Trigger Pipeline 3 Deploy') {
+            steps {
+                build job: 'Pipeline 3 (Deployyy)', wait: true
+            }
+        }
+
         stage('Send Approval Email') {
             steps {
                 emailext(
