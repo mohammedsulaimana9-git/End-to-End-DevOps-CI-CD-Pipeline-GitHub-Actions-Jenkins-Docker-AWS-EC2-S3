@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        NOTIFICATION_EMAILS = "${env.NOTIFICATION_EMAILS}"
+        NOTIFICATION_EMAILS = credentials('PIPELINE_MAIL_TO')
     }
 
     stages {
